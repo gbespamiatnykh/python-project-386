@@ -11,9 +11,9 @@ import urllib.request
 from pytest_django.live_server_helper import LiveServer
 
 
-def test_health_endpoint_matches_contract(liveserver: LiveServer) -> None:
+def test_health_endpoint_matches_contract(live_server: LiveServer) -> None:
     """GET /api/health/ answers 200 with the contract JSON."""
-    url = f"{liveserver.url}/api/health/"
+    url = f"{live_server.url}/api/health/"
     with urllib.request.urlopen(url) as response:
         assert response.status == 200
         assert response.headers["Content-Type"].startswith("application/json")
@@ -22,9 +22,9 @@ def test_health_endpoint_matches_contract(liveserver: LiveServer) -> None:
     assert body == {"status": "ok"}
 
 
-def test_health_endpoint_without_trailing_slash(liveserver: LiveServer) -> None:
+def test_health_endpoint_without_trailing_slash(live_server: LiveServer) -> None:
     """GET /api/health (as emitted by TypeSpec) also answers 200."""
-    url = f"{liveserver.url}/api/health"
+    url = f"{live_server.url}/api/health"
     with urllib.request.urlopen(url) as response:
         assert response.status == 200
         body = json.loads(response.read())

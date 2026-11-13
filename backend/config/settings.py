@@ -57,4 +57,10 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# Django's live test server (pytest-django ``live_server``) wraps the app in a
+# static/media handler that does ``urlparse(settings.STATIC_URL)``; both values
+# must be non-empty strings or every live-server request fails with a 500.
+STATIC_URL = "static/"
+MEDIA_URL = "media/"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
