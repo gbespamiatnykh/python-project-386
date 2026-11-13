@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: mise run check
+    runs-on: ubuntu-latest
+    env:
+      MISE_EXPERIMENTAL: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned tools from mise.toml + mise.lock
+        uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5
+        with:
+          install: true
+
+      - name: Install dependencies from lockfiles
+        run: mise run install
+
+      - name: Run all checks
+        run: mise run check
