@@ -1,0 +1,8 @@
+packages:
+  - contract
+  - frontend
+
+# Only esbuild has a postinstall step (native binary download); allow-listed
+# explicitly so every other package's build scripts stay blocked by pnpm.
+allowBuilds:
+  esbuild: true

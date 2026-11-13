@@ -1,0 +1,129 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+[settings]
+experimental = true
+
+[tools]
+# Все версии зафиксированы точно; разрешённые в точные версии пишет mise.lock (mise lock).
+"aqua:jdx/mise" = "2026.11.7"
+node = "24.22.3"
+python = "3.13.18"
+pnpm = "12.18.0"
+uv = "0.13.8"
+hk = "2.12.0"
+pitchfork = "2.34.0"
+
+[env]
+DJANGO_SETTINGS_MODULE = "config.settings"
+PYTHONUTF8 = "1"
+
+# ---- Daemons (pitchfork, требует experimental = true) ----
+
+[daemons.api]
+run = "exec uv run --frozen --directory backend python manage.py runserver 127.0.0.1:8000 --noreload"
+ready_port = 8000
+
+[daemons.web]
+run = "exec pnpm --filter frontend run dev"
+ready_port = 5173
+
+# ---- Tasks ----
+
+# Задачи не вызывают hk, а шаги hk не вызывают mise — циклов нет.
+
+[tasks."install:pnpm"]
+description = "Install workspace dependencies from pnpm-lock.yaml"
+run = "pnpm install --frozen-lockfile"
+
+[tasks."install:backend"]
+description = "Install backend dependencies from uv.lock"
+dir = "backend"
+run = "uv sync --frozen"
+
+[tasks.install]
+description = "Install all dependencies from lockfiles (pnpm + uv)"
+depends = ["install:pnpm", "install:backend"]
+run = "echo 'Dependencies installed.'"
+
+[tasks."api:contract"]
+description = "Compile TypeSpec contract to OpenAPI 3.1 (contract/out/openapi.yaml)"
+dir = "contract"
+run = "pnpm exec tsp compile ."
+
+[tasks."api:sdk"]
+description = "Generate TypeScript SDK from OpenAPI with Orval (frontend/src/shared/api)"
+dir = "frontend"
+depends = ["api:contract"]
+run = "pnpm exec orval"
+
+[tasks."api:generate"]
+description = "Regenerate OpenAPI contract and TypeScript SDK"
+depends = ["api:contract", "api:sdk"]
+run = "echo 'API contract and SDK generated.'"
+
+[tasks."check:api"]
+description = "Regenerate API artifacts and fail if generated code is stale"
+depends = ["api:generate"]
+run = """
+if ! test -z "$(git status --porcelain -- contract/out frontend/src/shared/api)"; then
+  echo "ERROR: generated API files are stale or missing from the commit."
+  git status --porcelain -- contract/out frontend/src/shared/api
+  echo "Run 'mise run api:generate' and commit the result."
+  exit 1
+fi
+"""
+
+[tasks."check:backend"]
+description = "Ruff lint + format check + pytest (real HTTP smoke test)"
+dir = "backend"
+run = [
+  "uv run --frozen ruff check .",
+  "uv run --frozen ruff format --check .",
+  "uv run --frozen pytest",
+]
+
+[tasks."check:frontend"]
+description = "oxfmt + oxlint + tsc --noEmit + Vitest + Vite build"
+dir = "frontend"
+run = [
+  "pnpm exec oxfmt --check src",
+  "pnpm exec oxlint --deny-warnings .",
+  "pnpm exec tsc --noEmit",
+  "pnpm exec vitest run",
+  "pnpm exec vite build",
+]
+
+[tasks.check]
+description = "Run every project check (same command locally and in CI)"
+depends = ["check:api", "check:backend", "check:frontend"]
+run = "echo 'All checks passed.'"
+
+[tasks."fix:backend"]
+description = "Auto-fix backend lint/format issues"
+dir = "backend"
+run = [
+  "uv run --frozen ruff check --fix .",
+  "uv run --frozen ruff format .",
+]
+
+[tasks."fix:frontend"]
+description = "Auto-fix frontend lint/format issues"
+dir = "frontend"
+run = [
+  "pnpm exec oxfmt src",
+  "pnpm exec oxlint --fix --deny-warnings .",
+]
+
+[tasks.fix]
+description = "Apply safe auto-fixes"
+depends = ["fix:backend", "fix:frontend"]
+run = "echo 'Auto-fixes applied.'"
+
+[tasks.dev]
+description = "Start backend (Django :8000) and frontend (Vite :5173) daemons"
+daemons = ["api", "web"]
+run = """
+echo 'Backend:  http://127.0.0.1:8000/api/health/'
+echo 'Frontend: http://127.0.0.1:5173'
+echo 'Daemons keep running; stop with: mise daemons stop'
+"""
