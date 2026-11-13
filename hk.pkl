@@ -1,0 +1,43 @@
+/// Project checks wired into Git hooks.
+///
+/// Rules:
+/// - checks must not modify files; fixes are applied by `hk fix`;
+/// - steps call tools directly (`uv run`, `pnpm exec`) and never invoke
+///   `mise run`, `mise` tasks or `hk` itself, so hooks cannot recurse;
+/// - `commit-msg` enforces Conventional Commits via commitlint.
+amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
+
+import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
+
+steps {
+  ["ruff"] {
+    glob = List("**/*.py")
+    check = "uv run --project backend --frozen ruff check {{files}}"
+    fix = "uv run --project backend --frozen ruff check --fix {{files}}"
+  }
+  ["ruff-format"] {
+    glob = List("**/*.py")
+    check = "uv run --project backend --frozen ruff format --check {{files}}"
+    fix = "uv run --project backend --frozen ruff format {{files}}"
+  }
+  ["oxfmt"] {
+    glob = List("**/*.{ts,tsx,js,jsx,mjs,json,css,html,yaml,yml,md}")
+    check = "pnpm exec oxfmt --check {{files}}"
+    fix = "pnpm exec oxfmt {{files}}"
+  }
+  ["oxlint"] {
+    glob = List("**/*.{ts,tsx,js,jsx,mjs}")
+    check = "pnpm exec oxlint --deny-warnings {{files}}"
+    fix = "pnpm exec oxlint --fix --deny-warnings {{files}}"
+  }
+}
+
+hooks {
+  ["commit-msg"] {
+    steps {
+      ["commitlint"] {
+        check = "pnpm exec commitlint --edit {{commit_msg_file}}"
+      }
+    }
+  }
+}
