@@ -1,0 +1,3 @@
+{
+  "ignorePatterns": ["pnpm-lock.yaml", "contract/out", "frontend/src/shared/api"]
+}

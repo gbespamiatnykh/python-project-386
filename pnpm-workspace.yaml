@@ -6,3 +6,8 @@ packages:
 # explicitly so every other package's build scripts stay blocked by pnpm.
 allowBuilds:
   esbuild: true
+
+# Do not silently install or rewrite the lockfile when running `pnpm exec`:
+# dependencies must come from `mise run install`, and hooks must never mutate
+# pnpm-lock.yaml.
+verifyDepsBeforeRun: false
