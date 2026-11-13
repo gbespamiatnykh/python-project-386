@@ -1,3 +1,8 @@
 {
-  "ignorePatterns": ["pnpm-lock.yaml", "contract/out", "frontend/src/shared/api"]
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "contract/out",
+    "frontend/src/shared/api",
+    ".github/workflows/hexlet-check.yml"
+  ]
 }
